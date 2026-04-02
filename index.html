@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance · VARIGO+</title>
+<link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6f9;--white:#fff;
+  --bd:#e3e6ed;--bd2:#c8cdd9;
+  --tx:#1a1d27;--tx2:#6b7080;--tx3:#b0b7c8;
+  --acc:#2563eb;--acc-bg:#eff4ff;--acc-bd:#c7d7fe;
+  --red:#dc2626;--red-bg:#fff1f1;--red-bd:#fecaca;
+  --amb:#d97706;--amb-bg:#fffbeb;--amb-bd:#fde68a;
+  --grn:#059669;--grn-bg:#ecfdf5;--grn-bd:#a7f3d0;
+  --r:10px;--r-sm:7px;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 4px 14px rgba(0,0,0,.08);
+  --font:'Phetsarath',serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--tx);font-family:var(--font);min-height:100vh;line-height:1.6}
+button{font-family:var(--font)}
+input{font-family:var(--font)}
+
+/* LAYOUT & SIDEBAR */
+.layout{display:flex;min-height:100vh}
+.sb{
+  width:232px;flex-shrink:0;background:var(--white);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:20;
+}
+.sb-top{padding:18px 16px 14px;border-bottom:1px solid var(--bd)}
+.sb-brand{display:flex;align-items:center;gap:10px}
+.sb-icon{
+  width:36px;height:36px;border-radius:9px;flex-shrink:0;
+  background:var(--acc-bg);border:1px solid var(--acc-bd);
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.sb-name{font-size:15px;font-weight:600;letter-spacing:.01em}
+.sb-ver{font-size:11px;color:var(--tx3);margin-top:1px}
+.sb-label{
+  padding:14px 16px 6px;font-size:11px;font-weight:600;color:var(--tx3);
+  letter-spacing:.05em;text-transform:uppercase;
+}
+.sb-list{flex:1;overflow-y:auto;padding:4px 8px}
+.sh-row{
+  display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--r-sm);
+  cursor:pointer;margin-bottom:1px;transition:background .1s;
+}
+.sh-row:hover{background:var(--bg)}
+.sh-row.active{background:var(--acc-bg)}
+.sh-dot{width:7px;height:7px;border-radius:50%;background:var(--tx3);flex-shrink:0}
+.sh-row.active .sh-dot{background:var(--acc)}
+.sh-info{flex:1;min-width:0}
+.sh-nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tx2)}
+.sh-row.active .sh-nm{color:var(--acc)}
+.sh-ct{font-size:11px;font-family:'DM Mono',monospace;color:var(--tx3);flex-shrink:0}
+.sh-del{
+  width:18px;height:18px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--tx3);cursor:pointer;opacity:0;transition:opacity .1s,background .1s;border:none;background:transparent;
+}
+.sh-row:hover .sh-del{opacity:1}
+.sh-del:hover{background:var(--red-bg);color:var(--red)}
+.sb-empty{padding:24px 12px;text-align:center;color:var(--tx3);font-size:13px;line-height:1.7}
+.sb-foot{padding:12px 10px;border-top:1px solid var(--bd)}
+.btn-imp{
+  width:100%;padding:10px 14px;background:var(--acc);color:#fff;border:none;border-radius:var(--r-sm);
+  font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .12s;
+}
+.btn-imp:hover{background:#1d4ed8}
+
+/* MAIN & TOPBAR */
+.main{margin-left:232px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{
+  background:var(--white);border-bottom:1px solid var(--bd);padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10;
+}
+.tb-left .tb-title{font-size:16px;font-weight:600;letter-spacing:.01em}
+.tb-left .tb-sub{font-size:12px;color:var(--tx2);margin-top:2px}
+.tb-right{display:flex;gap:8px;align-items:center}
+.btn-ol{
+  padding:7px 14px;background:var(--white);border:1px solid var(--bd2);border-radius:var(--r-sm);
+  font-size:13px;font-weight:600;color:var(--tx);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s;
+}
+.btn-ol:hover{border-color:var(--acc);color:var(--acc)}
+.btn-pr{
+  padding:7px 16px;background:var(--acc);border:none;border-radius:var(--r-sm);
+  font-size:13px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .12s;
+}
+.btn-pr:hover{background:#1d4ed8}
+
+/* Export dropdown */
+.exp-wrap{position:relative}
+.exp-menu{
+  position:absolute;top:calc(100% + 6px);right:0;
+  background:var(--white);border:1px solid var(--bd);border-radius:var(--r-sm);
+  box-shadow:var(--sh2);min-width:190px;z-index:50;display:none;overflow:hidden;
+}
+.exp-menu.open{display:block}
+.exp-item{
+  padding:10px 16px;font-size:13px;font-weight:500;color:var(--tx);
+  cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s;
+}
+.exp-item:hover{background:var(--bg)}
+.exp-item .ei-sub{font-size:11px;color:var(--tx3);display:block;margin-top:1px}
+
+/* CONTENT & WELCOME */
+.content{padding:22px 24px;flex:1}
+.welcome{max-width:440px;margin:80px auto;text-align:center}
+.wc-icon{
+  width:76px;height:76px;margin:0 auto 20px;background:var(--acc-bg);border:2px dashed var(--acc-bd);
+  border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;
+}
+.wc-title{font-size:21px;font-weight:600;margin-bottom:8px}
+.wc-sub{font-size:13px;color:var(--tx2);line-height:1.8;margin-bottom:20px}
+.wc-drop{
+  border:1.5px dashed var(--acc-bd);border-radius:var(--r);padding:2rem 1.5rem;margin-bottom:16px;
+  cursor:pointer;transition:all .15s;background:var(--acc-bg);
+}
+.wc-drop:hover{border-color:var(--acc)}
+.wc-drop p{font-size:13px;color:var(--acc);font-weight:600;margin-top:6px}
+.wc-drop span{font-size:11px;color:var(--tx3)}
+.btn-imp-lg{
+  width:100%;padding:11px 20px;background:var(--acc);color:#fff;border:none;border-radius:var(--r-sm);
+  font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .12s;
+}
+.btn-imp-lg:hover{background:#1d4ed8}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.sc{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);position:relative;overflow:hidden;}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.sc.blue::after{background:var(--acc)} .sc.red::after{background:var(--red)}
+.sc.amb::after{background:var(--amb)}  .sc.grn::after{background:var(--grn)}
+.sc-lb{font-size:11px;color:var(--tx2);margin-bottom:5px;letter-spacing:.03em}
+.sc-vl{font-size:28px;font-weight:600;letter-spacing:-1px;font-family:'DM Mono',monospace}
+.sc.blue .sc-vl{color:var(--acc)} .sc.red .sc-vl{color:var(--red)}
+.sc.amb .sc-vl{color:var(--amb)}  .sc.grn .sc-vl{color:var(--grn)}
+
+/* TOOLBAR & TABLE */
+.toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.srch-box{position:relative;flex:1;min-width:180px}
+.srch-box svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tx3);pointer-events:none}
+.srch-box input{
+  width:100%;padding:8px 12px 8px 33px;background:var(--white);border:1px solid var(--bd);
+  border-radius:var(--r-sm);font-size:13px;color:var(--tx);outline:none;transition:border-color .12s;box-shadow:var(--sh);
+}
+.srch-box input:focus{border-color:var(--acc)}
+.srch-box input::placeholder{color:var(--tx3)}
+.flt-grp{display:flex;gap:5px;flex-wrap:wrap}
+.fb{
+  padding:7px 13px;background:var(--white);border:1px solid var(--bd);border-radius:var(--r-sm);
+  font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all .12s;box-shadow:var(--sh);white-space:nowrap;
+}
+.fb:hover{border-color:var(--bd2);color:var(--tx)}
+.fb.active{background:var(--acc-bg);border-color:var(--acc-bd);color:var(--acc)}
+
+.tbl-card{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{
+  padding:10px 13px;background:var(--bg);border-bottom:1px solid var(--bd);
+  font-size:11px;font-weight:600;color:var(--tx2);letter-spacing:.04em;
+  cursor:pointer;user-select:none;white-space:nowrap;text-align:center;transition:color .12s;
+}
+thead th:first-child{text-align:left}
+thead th:hover{color:var(--tx)}
+thead th.srt{color:var(--acc)}
+.sort-ic{opacity:.4;margin-left:3px}
+thead th.srt .sort-ic{opacity:1}
+tbody tr{border-bottom:1px solid var(--bd);transition:background .08s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#fafbff;}
+td{padding:10px 13px;text-align:center;font-size:13px}
+td:first-child{text-align:left;font-weight:600}
+.mn{font-family:'DM Mono',monospace}
+.dim{color:var(--tx3);font-family:'DM Mono',monospace}
+.nr{color:var(--red);font-weight:600;font-family:'DM Mono',monospace}
+.na{color:var(--amb);font-weight:600;font-family:'DM Mono',monospace}
+.ng{font-family:'DM Mono',monospace}
+
+/* BADGE & PROGRESS */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.b-ok{background:var(--grn-bg);color:var(--grn);border:1px solid var(--grn-bd)}
+.b-wn{background:var(--amb-bg);color:var(--amb);border:1px solid var(--amb-bd)}
+.b-bd{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+.pb{display:flex;align-items:center;gap:7px;justify-content:center}
+.pb-t{width:60px;height:5px;background:var(--bd);border-radius:3px;overflow:hidden;flex-shrink:0}
+.pb-f{height:100%;border-radius:3px}
+.pb-p{font-size:11px;font-family:'DM Mono',monospace;color:var(--tx2);min-width:26px;text-align:right}
+
+.tbl-ft{
+  padding:9px 14px;font-size:12px;color:var(--tx3);border-top:1px solid var(--bd);background:var(--bg);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.saved-pill{
+  display:inline-flex;align-items:center;gap:4px;background:var(--grn-bg);color:var(--grn);
+  border:1px solid var(--grn-bd);border-radius:20px;font-size:11px;padding:2px 9px;font-weight:600;
+}
+.empty{text-align:center;padding:56px 20px;color:var(--tx3)}
+.empty p{font-size:13px;margin-top:6px}
+
+/* MODAL */
+.modal-ov{
+  position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:none;
+  align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;backdrop-filter:blur(2px);
+}
+.modal-ov.show{display:flex;opacity:1;}
+.modal{
+  background:var(--white);width:90%;max-width:560px;border-radius:var(--r);
+  box-shadow:var(--sh2);position:relative;transform:translateY(20px);transition:transform 0.2s;
+  display:flex;flex-direction:column;max-height:90vh;
+}
+.modal-ov.show .modal{transform:translateY(0);}
+.modal-close{
+  position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;border:none;
+  background:var(--bd);color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;font-size:13px;z-index:10;
+}
+.modal-close:hover{background:var(--red-bg);color:var(--red);}
+.modal-hdr{padding:20px 24px;border-bottom:1px solid var(--bd);display:flex;gap:14px;align-items:center;background:var(--bg);flex-shrink:0;border-radius:var(--r) var(--r) 0 0;}
+.modal-av{
+  width:48px;height:48px;border-radius:50%;background:var(--acc-bg);color:var(--acc);
+  display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600;border:1px solid var(--acc-bd);
+}
+.modal-nm{font-size:17px;font-weight:600;color:var(--tx);}
+.modal-st{margin-top:5px;}
+.modal-bdy{padding:20px 24px;overflow-y:auto;flex:1;}
+.m-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;}
+.m-item{background:var(--bg);padding:12px;border-radius:var(--r-sm);border:1px solid var(--bd);}
+.m-lb{font-size:11px;color:var(--tx2);margin-bottom:4px;}
+.m-vl{font-size:15px;font-weight:600;color:var(--tx);font-family:'DM Mono',monospace;}
+.d-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.d-title::before{content:'';width:4px;height:14px;background:var(--acc);border-radius:2px;}
+.d-tbl-wrap{border:1px solid var(--bd);border-radius:var(--r-sm);overflow:hidden;}
+.d-tbl{width:100%;border-collapse:collapse;font-size:12px;text-align:left;}
+.d-tbl th{background:var(--bg);border-bottom:1px solid var(--bd);padding:8px 12px;font-weight:600;color:var(--tx2);font-size:11px;}
+.d-tbl td{padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;}
+.d-tbl tr:last-child td{border-bottom:none;}
+.d-tbl tbody tr:hover{background:#fafbff;}
+.st-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+
+/* TOAST & DRAG */
+.toast{
+  position:fixed;bottom:22px;right:22px;z-index:999;background:var(--tx);color:#fff;
+  padding:10px 18px;border-radius:var(--r-sm);font-size:13px;font-weight:600;box-shadow:var(--sh2);
+  opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none;
+}
+.toast.show{opacity:1;transform:none}
+.drag-ov{
+  display:none;position:fixed;inset:0;z-index:100;background:rgba(37,99,235,.07);border:3px dashed var(--acc-bd);
+  align-items:center;justify-content:center;font-size:17px;font-weight:600;color:var(--acc);pointer-events:none;
+}
+.drag-ov.show{display:flex}
+#file-in{display:none}
+
+@media(max-width:700px){
+  .sb{width:190px}.main{margin-left:190px}
+  .stats{grid-template-columns:1fr 1fr}.content{padding:14px 16px}
+  .m-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<input type="file" id="file-in" accept=".xlsx,.xls,.csv">
+<div class="drag-ov" id="drag-ov">ວາງໄຟລ໌ Excel ທີ່ນີ້</div>
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-ov" id="modal-ov" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-hdr">
+      <div class="modal-av" id="m-av"></div>
+      <div>
+        <div class="modal-nm" id="m-nm"></div>
+        <div class="modal-st" id="m-st"></div>
+      </div>
+    </div>
+    <div class="modal-bdy">
+      <div class="m-grid" id="m-grid"></div>
+      <div class="d-title">ລາຍລະອຽດແຕ່ລະມື້</div>
+      <div class="d-tbl-wrap">
+        <table class="d-tbl">
+          <thead><tr><th>ວັນທີ / ມື້</th><th>ສະຖານະການເຂົ້າວຽກ</th></tr></thead>
+          <tbody id="m-daily"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sb">
+    <div class="sb-top">
+      <div class="sb-brand">
+        <div class="sb-icon">📋</div>
+        <div><div class="sb-name">Attendance</div><div class="sb-ver">Lark Report</div></div>
+      </div>
+    </div>
+    <div class="sb-label">ລາຍງານທີ່ບັນທຶກ</div>
+    <div class="sb-list" id="sb-list"></div>
+    <div class="sb-foot">
+      <button class="btn-imp" onclick="triggerImp()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import Excel ໃໝ່
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="tb-left">
+        <div class="tb-title" id="tb-title">Attendance Report</div>
+        <div class="tb-sub" id="tb-sub">ເລືອກ ຫຼື Import ລາຍງານ</div>
+      </div>
+      <div class="tb-right" id="tb-right" style="display:none">
+        <button class="btn-ol" onclick="triggerImp()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import ໃໝ່
+        </button>
+        <!-- Export dropdown -->
+        <div class="exp-wrap" id="exp-wrap">
+          <button class="btn-pr" onclick="toggleExpMenu(event)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export ▾
+          </button>
+          <div class="exp-menu" id="exp-menu">
+            <div class="exp-item" onclick="doExport('summary')">
+              <span>📊</span>
+              <div>
+                <span>ສະຫລຸບລາຍຄົນ</span>
+                <span class="ei-sub">ຂາດ, ຊ້າ, ບໍ່ສະແກນ ທຸກຄົນ</span>
+              </div>
+            </div>
+            <div class="exp-item" onclick="doExport('daily')">
+              <span>📅</span>
+              <div>
+                <span>ລາຍລະອຽດລາຍມື້</span>
+                <span class="ei-sub">ສະຖານະແຕ່ລະວັນທຸກຄົນ</span>
+              </div>
+            </div>
+            <div class="exp-item" onclick="doExport('full')">
+              <span>📋</span>
+              <div>
+                <span>Export ທັງໝົດ (2 Sheets)</span>
+                <span class="ei-sub">ສະຫລຸບ + ລາຍມື້ໃນໄຟລ໌ດຽວ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+      <div class="welcome" id="welcome">
+        <div class="wc-icon">📂</div>
+        <div class="wc-title">ສ້າງລາຍງານການເຂົ້າວຽກ</div>
+        <div class="wc-sub">Import ໄຟລ໌ Excel ຈາກ Lark Attendance<br>ລາຍງານຈະຖືກ<strong>ບັນທຶກອັດຕະໂນມັດ</strong>ທຸກເທື່ອ</div>
+        <div class="wc-drop" onclick="triggerImp()">
+          <div style="font-size:28px">📥</div>
+          <p>ລາກໄຟລ໌ Excel ມາວາງທີ່ນີ້</p><span>ຮອງຮັບ .xlsx .xls ຈາກ Lark</span>
+        </div>
+        <button class="btn-imp-lg" onclick="triggerImp()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          ເລືອກໄຟລ໌ Excel
+        </button>
+      </div>
+
+      <div id="dview" style="display:none">
+        <div class="stats">
+          <div class="sc blue"><div class="sc-lb">ພະນັກງານ</div><div class="sc-vl" id="s-total">—</div></div>
+          <div class="sc red"><div class="sc-lb">ຂາດວຽກ (ມື້)</div><div class="sc-vl" id="s-absent">—</div></div>
+          <div class="sc amb"><div class="sc-lb">ນາທີຊ້າລວມ</div><div class="sc-vl" id="s-late">—</div></div>
+          <div class="sc grn"><div class="sc-lb">ບໍ່ສະແກນ (ຮອບ)</div><div class="sc-vl" id="s-miss">—</div></div>
+        </div>
+        <div class="toolbar">
+          <div class="srch-box">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="srch" placeholder="ຄົ້ນຫາຊື່..." oninput="render()">
+          </div>
+          <div class="flt-grp">
+            <button class="fb active" data-f="all" onclick="setFlt('all',this)">ທັງໝົດ</button>
+            <button class="fb" data-f="bad" onclick="setFlt('bad',this)">⚠ ຂາດຫຼາຍ</button>
+            <button class="fb" data-f="late" onclick="setFlt('late',this)">🕐 ຊ້າ</button>
+            <button class="fb" data-f="miss" onclick="setFlt('miss',this)">🔴 ບໍ່ສະແກນ</button>
+          </div>
+        </div>
+        <div class="tbl-card">
+          <table>
+            <thead><tr>
+              <th onclick="srt('name')" id="th-name">ຊື່ <span class="sort-ic">↕</span></th>
+              <th onclick="srt('expected_days')" id="th-expected_days">ວັນວຽກ <span class="sort-ic">↕</span></th>
+              <th onclick="srt('present_days')" id="th-present_days">ການມາ <span class="sort-ic">↕</span></th>
+              <th onclick="srt('absent_days')" id="th-absent_days">ຂາດ <span class="sort-ic">↕</span></th>
+              <th onclick="srt('late_count')" id="th-late_count">ຊ້າ (ຄັ້ງ) <span class="sort-ic">↕</span></th>
+              <th onclick="srt('late_min')" id="th-late_min">ນາທີຊ້າ <span class="sort-ic">↕</span></th>
+              <th onclick="srt('early_count')" id="th-early_count">ໄວ (ຄັ້ງ) <span class="sort-ic">↕</span></th>
+              <th onclick="srt('missed_total')" id="th-missed_total">ບໍ່ສະແກນ <span class="sort-ic">↕</span></th>
+              <th>ສະຖານະ</th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="tbl-ft">
+            <span id="tbl-ct"></span>
+            <span class="saved-pill" id="saved-pill" style="display:none">✓ ບັນທຶກແລ້ວ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const DB = 'att_sheets_v4';
+let sheets = {}, activeId = null;
+let srtKey = 'absent_days', srtAsc = false, flt = 'all';
+
+function save(){ try{ localStorage.setItem(DB, JSON.stringify(sheets)); }catch(e){} }
+function load(){ try{ const r=localStorage.getItem(DB); if(r) sheets=JSON.parse(r); }catch(e){ sheets={}; } }
+
+function triggerImp(){ document.getElementById('file-in').click(); }
+document.getElementById('file-in').addEventListener('change', e=>{ const f=e.target.files[0]; if(f){ readF(f); } e.target.value=''; });
+window.addEventListener('dragover', e=>{ e.preventDefault(); document.getElementById('drag-ov').classList.add('show'); });
+window.addEventListener('dragleave', e=>{ if(!e.relatedTarget) document.getElementById('drag-ov').classList.remove('show'); });
+window.addEventListener('drop', e=>{ e.preventDefault(); document.getElementById('drag-ov').classList.remove('show'); const f=e.dataTransfer.files[0]; if(f) readF(f); });
+document.addEventListener('click', e=>{ if(!document.getElementById('exp-wrap').contains(e.target)) document.getElementById('exp-menu').classList.remove('open'); });
+
+function toggleExpMenu(e){ e.stopPropagation(); document.getElementById('exp-menu').classList.toggle('open'); }
+
+function readF(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:ext==='csv'?'string':'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      parse(rows, file.name);
+    }catch(e){ showToast('ອ່ານໄຟລ໌ບໍ່ໄດ້','err'); }
+  };
+  if(ext==='csv') r.readAsText(file,'UTF-8'); else r.readAsBinaryString(file);
+}
+
+function sN(v){ if(v===''||v==null) return 0; const s=String(v).trim(); return s==='-'?0:(parseFloat(s)||0); }
+
+const isDateCol=(txt)=>{
+  if(!txt) return false; const t=String(txt).trim();
+  if(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(t)) return true;
+  if(/^\d{1,2}[-/]\d{1,2}/.test(t)) return true;
+  return false;
+};
+
+function parse(rows, fname){
+  if(rows.length<3){ showToast('ຮູບແບບໄຟລ໌ຜິດ','err'); return; }
+  const h1=rows[0]||[], h2=rows[1]||[];
+  const dateCols=[];
+  const skip=new Set([13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45]);
+  for(let c=0;c<Math.max(h1.length,h2.length);c++){
+    if(skip.has(c)) continue;
+    const t1=String(h1[c]||'').trim(), t2=String(h2[c]||'').trim();
+    const label=isDateCol(t1)?t1:(isDateCol(t2)?t2:'');
+    if(label) dateCols.push({index:c,label});
+  }
+
+  const data=[];
+  for(let i=2;i<rows.length;i++){
+    const r=rows[i]; const name=String(r[0]||'').trim();
+    if(!name||name==='nan') continue;
+    const daily=dateCols.map(dc=>({date:dc.label, status:String(r[dc.index]||'').trim()}));
+    data.push({
+      name, expected_days:Math.round(sN(r[13])), present_days:sN(r[15]), absent_days:Math.round(sN(r[33])),
+      late_count:Math.round(sN(r[24]))+Math.round(sN(r[26])), late_min:Math.round((sN(r[25])+sN(r[27]))*60),
+      early_count:Math.round(sN(r[28])), early_min:Math.round(sN(r[29])*60),
+      missed_in:Math.round(sN(r[31])), missed_out:Math.round(sN(r[32])),
+      missed_total:Math.round(sN(r[31]))+Math.round(sN(r[32])), daily
+    });
+  }
+  if(!data.length){ showToast('ບໍ່ພົບຂໍ້ມູນ','err'); return; }
+  const m=fname.match(/(\d{4})(\d{2})\d{2}/);
+  const label=m?`${m[1]}-${m[2]}`:fname.replace(/\.[^.]+$/,'').slice(0,18);
+  const id='s_'+Date.now();
+  sheets[id]={name:label, saved:new Date().toLocaleDateString('lo-LA'), data};
+  save(); renderSB(); activate(id);
+  showToast('ບັນທຶກ "'+label+'" ສຳເລັດ');
+}
+
+function renderSB(){
+  const el=document.getElementById('sb-list');
+  const ids=Object.keys(sheets).sort((a,b)=>sheets[b].name.localeCompare(sheets[a].name));
+  if(!ids.length){ el.innerHTML='<div class="sb-empty">ຍັງບໍ່ມີລາຍງານ<br><small>Import ໄຟລ໌ Excel ຈາກ Lark</small></div>'; return; }
+  el.innerHTML=ids.map(id=>{
+    const s=sheets[id];
+    return `<div class="sh-row${id===activeId?' active':''}" onclick="activate('${id}')">
+      <div class="sh-dot"></div><div class="sh-info"><div class="sh-nm">${s.name}</div></div>
+      <span class="sh-ct">${s.data.length}ຄ</span><button class="sh-del" onclick="delSheet(event,'${id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function delSheet(e,id){
+  e.stopPropagation(); if(!confirm(`ລຶບ "${sheets[id].name}"?`)) return;
+  delete sheets[id]; save(); const ids=Object.keys(sheets);
+  if(activeId===id){ if(ids.length) activate(ids[ids.length-1]); else{ activeId=null; showWelcome(); } }
+  renderSB();
+}
+
+function showWelcome(){
+  document.getElementById('welcome').style.display=''; document.getElementById('dview').style.display='none';
+  document.getElementById('tb-right').style.display='none';
+  document.getElementById('tb-title').textContent='Attendance Report';
+  document.getElementById('tb-sub').textContent='ເລືອກ ຫຼື Import ລາຍງານ';
+}
+
+function activate(id){
+  activeId=id; renderSB(); const s=sheets[id];
+  document.getElementById('welcome').style.display='none'; document.getElementById('dview').style.display='';
+  document.getElementById('tb-right').style.display='flex';
+  document.getElementById('tb-title').textContent='ລາຍງານ '+s.name;
+  document.getElementById('tb-sub').textContent=`VARIGO+ · ${s.data.length} ຄົນ · ບັນທຶກ ${s.saved}`;
+  document.getElementById('saved-pill').style.display=''; document.getElementById('srch').value='';
+  flt='all'; document.querySelectorAll('.fb').forEach(b=>b.classList.toggle('active',b.dataset.f==='all'));
+  srtKey='absent_days'; srtAsc=false; document.querySelectorAll('thead th').forEach(t=>t.classList.remove('srt'));
+  const el=document.getElementById('th-absent_days'); if(el) el.classList.add('srt');
+  updateStats(s.data); render();
+}
+
+function setFlt(f,el){ flt=f; document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
+
+function srt(k){
+  if(srtKey===k) srtAsc=!srtAsc; else{ srtKey=k; srtAsc=false; }
+  document.querySelectorAll('thead th').forEach(t=>t.classList.remove('srt'));
+  const el=document.getElementById('th-'+k); if(el) el.classList.add('srt'); render();
+}
+
+function pbar(p,e){
+  if(!e) return '<span class="dim">—</span>'; const pct=Math.min(100,Math.round(p/e*100));
+  const c=pct>=80?'var(--grn)':pct>=50?'var(--amb)':'var(--red)';
+  return `<div class="pb"><div class="pb-t"><div class="pb-f" style="width:${pct}%;background:${c}"></div></div><span class="pb-p">${pct}%</span></div>`;
+}
+function nc(v,w,b){ if(v===0) return `<span class="dim">0</span>`; if(v>=b) return `<span class="nr">${v}</span>`; if(v>=w) return `<span class="na">${v}</span>`; return `<span class="ng">${v}</span>`; }
+function mkBadge(r){ if(r.absent_days>=10) return '<span class="badge b-bd">⚠ ຂາດຫຼາຍ</span>'; if(r.absent_days>=3||r.late_min>=60||r.missed_total>=10) return '<span class="badge b-wn">! ຕ້ອງກວດ</span>'; return '<span class="badge b-ok">✓ ປົກກະຕິ</span>'; }
+function mkBadgeText(r){ if(r.absent_days>=10) return 'ຂາດຫຼາຍ'; if(r.absent_days>=3||r.late_min>=60||r.missed_total>=10) return 'ຕ້ອງກວດ'; return 'ປົກກະຕິ'; }
+
+function styleSingleStatus(val){
+  if(!val||val==='-'||val==='nan'||val.toLowerCase().includes('no record'))
+    return '<span class="st-badge" style="color:var(--red);background:var(--red-bg);border:1px solid var(--red-bd)">No record</span>';
+  const lw=val.toLowerCase(); let c='var(--tx)',bg='transparent';
+  if(lw.includes('ຂາດ')||lw.includes('absent')){c='var(--red)';bg='var(--red-bg)';}
+  else if(lw.includes('ຊ້າ')||lw.includes('late')||lw.includes('ໄວ')||lw.includes('early')){c='var(--amb)';bg='var(--amb-bg)';}
+  else if(lw.includes('ປົກກະຕິ')||lw.includes('normal')||lw.includes('regular')){c='var(--grn)';bg='var(--grn-bg)';}
+  else if(lw.includes('ພັກ')||lw.includes('break')||lw.includes('off')){c='var(--tx2)';bg='var(--bd)';}
+  if(bg!=='transparent') return `<span class="st-badge" style="color:${c};background:${bg};border:1px solid ${c}30">${val}</span>`;
+  return `<span style="font-family:'DM Mono',monospace;font-size:11px">${val}</span>`;
+}
+function styleStatus(val){
+  if(!val||val==='-'||val==='nan') return '<span class="st-badge" style="color:var(--red);background:var(--red-bg);border:1px solid var(--red-bd)">No record</span>';
+  // Split by comma to handle combined values like "Regular(08:25),No record(-)"
+  const parts=val.split(',').map(p=>p.trim()).filter(Boolean);
+  if(parts.length>1) return `<span style="display:inline-flex;gap:4px;flex-wrap:wrap">${parts.map(p=>styleSingleStatus(p)).join('')}</span>`;
+  return styleSingleStatus(val);
+}
+
+function showDetail(name){
+  if(!activeId) return;
+  const emp=sheets[activeId].data.find(r=>r.name===name); if(!emp) return;
+  document.getElementById('m-av').textContent=emp.name.charAt(0).toUpperCase();
+  document.getElementById('m-nm').textContent=emp.name;
+  document.getElementById('m-st').innerHTML=mkBadge(emp);
+  document.getElementById('m-grid').innerHTML=`
+    <div class="m-item"><div class="m-lb">ການມາ / ວັນວຽກ</div><div class="m-vl">${emp.present_days}/${emp.expected_days}</div></div>
+    <div class="m-item"><div class="m-lb">ຂາດວຽກ (ມື້)</div><div class="m-vl" style="color:${emp.absent_days>0?'var(--red)':'var(--tx)'}">${emp.absent_days}</div></div>
+    <div class="m-item"><div class="m-lb">ມາຊ້າ (ຄັ້ງ / ນທ)</div><div class="m-vl" style="color:${emp.late_count>0?'var(--amb)':'var(--tx)'}">${emp.late_count} / ${emp.late_min}</div></div>
+    <div class="m-item"><div class="m-lb">ອອກໄວ (ຄັ້ງ / ນທ)</div><div class="m-vl">${emp.early_count} / ${emp.early_min}</div></div>
+    <div class="m-item"><div class="m-lb">ລືມສະແກນເຂົ້າ</div><div class="m-vl">${emp.missed_in}</div></div>
+    <div class="m-item"><div class="m-lb">ລືມສະແກນອອກ</div><div class="m-vl">${emp.missed_out}</div></div>
+  `;
+  const tbody=document.getElementById('m-daily');
+  if(emp.daily&&emp.daily.length>0){
+    tbody.innerHTML=emp.daily.map(d=>`<tr><td>${d.date}</td><td>${styleStatus(d.status)}</td></tr>`).join('');
+  } else {
+    tbody.innerHTML=`<tr><td colspan="2"><div class="empty"><p>ບໍ່ມີຂໍ້ມູນລາຍມື້<br><small style="color:var(--amb)">Import ໄຟລ໌ Excel ຄືນໃໝ່ເພື່ອດຶງຂໍ້ມູນ</small></p></div></td></tr>`;
+  }
+  const ov=document.getElementById('modal-ov');
+  ov.style.display='flex'; ov.offsetHeight; ov.classList.add('show');
+}
+
+function closeModal(){
+  const ov=document.getElementById('modal-ov');
+  ov.classList.remove('show'); setTimeout(()=>{ov.style.display='none';},200);
+}
+
+function render(){
+  if(!activeId) return;
+  const q=document.getElementById('srch').value.toLowerCase();
+  let data=sheets[activeId].data.filter(r=>r.name.toLowerCase().includes(q));
+  if(flt==='bad') data=data.filter(r=>r.absent_days>=10);
+  else if(flt==='late') data=data.filter(r=>r.late_count>0);
+  else if(flt==='miss') data=data.filter(r=>r.missed_total>0);
+  data.sort((a,b)=>{ const av=a[srtKey],bv=b[srtKey]; if(typeof av==='string') return srtAsc?av.localeCompare(bv):bv.localeCompare(av); return srtAsc?av-bv:bv-av; });
+  if(!data.length){ document.getElementById('tbody').innerHTML=`<tr><td colspan="9"><div class="empty"><p>ບໍ່ພົບຂໍ້ມູນ</p></div></td></tr>`; document.getElementById('tbl-ct').textContent=''; return; }
+  document.getElementById('tbody').innerHTML=data.map(r=>`<tr onclick="showDetail('${r.name.replace(/'/g,"\\'")}')">
+    <td>${r.name}</td><td class="mn">${r.expected_days}</td>
+    <td>${pbar(r.present_days,r.expected_days)}</td>
+    <td>${nc(r.absent_days,3,10)}</td><td>${nc(r.late_count,3,8)}</td>
+    <td>${nc(r.late_min,30,90)}</td><td>${nc(r.early_count,2,5)}</td>
+    <td>${nc(r.missed_total,5,15)}</td><td>${mkBadge(r)}</td>
+  </tr>`).join('');
+  document.getElementById('tbl-ct').textContent=`ສະແດງ ${data.length} / ${sheets[activeId].data.length} ຄົນ`;
+  updateStats(data);
+}
+
+function updateStats(d){
+  document.getElementById('s-total').textContent=d.length;
+  document.getElementById('s-absent').textContent=d.reduce((a,r)=>a+r.absent_days,0);
+  document.getElementById('s-late').textContent=d.reduce((a,r)=>a+r.late_min,0);
+  document.getElementById('s-miss').textContent=d.reduce((a,r)=>a+r.missed_total,0);
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────────
+function dlBlob(wb, fname){
+  const b64 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+  const uri = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64;
+  const a   = document.createElement('a');
+  a.href = uri; a.download = fname; a.style.display='none';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>document.body.removeChild(a), 500);
+  showToast('Export ສຳເລັດ ✓');
+}
+
+function doExport(type){
+  document.getElementById('exp-menu').classList.remove('open');
+  if(!activeId) return;
+  const s=sheets[activeId];
+  const wb=XLSX.utils.book_new();
+
+  if(type==='summary'||type==='full'){
+    const sumRows=s.data.map(r=>({
+      'ຊື່ພະນັກງານ':r.name,
+      'ວັນເຮັດວຽກ':r.expected_days,
+      'ມາ (ມື້)':r.present_days,
+      'ຂາດ (ມື້)':r.absent_days,
+      'ມາຊ້າ (ຄັ້ງ)':r.late_count,
+      'ນາທີຊ້າ':r.late_min,
+      'ອອກໄວ (ຄັ້ງ)':r.early_count,
+      'ນາທີອອກໄວ':r.early_min,
+      'ບໍ່ສະແກນເຂົ້າ':r.missed_in,
+      'ບໍ່ສະແກນອອກ':r.missed_out,
+      'ບໍ່ສະແກນລວມ':r.missed_total,
+      'ສະຖານະ':mkBadgeText(r)
+    }));
+    const ws=XLSX.utils.json_to_sheet(sumRows);
+    ws['!cols']=[{wch:25},{wch:12},{wch:10},{wch:10},{wch:14},{wch:12},{wch:14},{wch:14},{wch:16},{wch:16},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,'ສະຫລຸບ',ws);
+  }
+
+  if(type==='daily'||type==='full'){
+    const dailyRows=[];
+    s.data.forEach(r=>{
+      (r.daily||[]).forEach(d=>{
+        dailyRows.push({'ຊື່ພະນັກງານ':r.name,'ວັນທີ':d.date,'ສະຖານະ':d.status});
+      });
+    });
+    const wsD=XLSX.utils.json_to_sheet(dailyRows.length?dailyRows:[{'ໝາຍເຫດ':'ບໍ່ມີຂໍ້ມູນລາຍມື້'}]);
+    wsD['!cols']=[{wch:25},{wch:22},{wch:40}];
+    XLSX.utils.book_append_sheet(wb,'ລາຍມື້',wsD);
+  }
+
+  const fmap={summary:`attendance_summary_${s.name}.xlsx`, daily:`attendance_daily_${s.name}.xlsx`, full:`attendance_full_${s.name}.xlsx`};
+  dlBlob(wb, fmap[type]||`attendance_${s.name}.xlsx`);
+}
+
+let toastTmr;
+function showToast(msg,type){
+  const el=document.getElementById('toast');
+  el.textContent=(type==='err'?'✕ ':'✓ ')+msg; el.style.background=type==='err'?'var(--red)':'#1a1d27';
+  el.classList.add('show'); clearTimeout(toastTmr); toastTmr=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+load(); renderSB();
+const ids=Object.keys(sheets);
+if(ids.length) activate(ids[ids.length-1]); else showWelcome();
+</script>
+</body>
+</html>
