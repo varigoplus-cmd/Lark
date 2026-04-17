@@ -6,6 +6,7 @@
 <title>Attendance · VARIGO+</title>
 <link href="https://fonts.googleapis.com/css2?family=Phetsarath&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <style>
 :root{
   --bg:#f4f6f9;--white:#fff;
@@ -242,6 +243,66 @@ td:first-child{text-align:left;font-weight:600}
 .d-tbl tbody tr:hover{background:#fafbff;}
 .st-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
 
+/* HOLIDAY STYLES */
+.hol-badge{
+  display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;
+  font-size:11px;font-weight:600;background:#fdf4ff;color:#7c3aed;border:1px solid #ddd6fe;
+}
+.hol-row td{ background:#fdf4ff!important; }
+.hol-label{ font-size:10px;color:#7c3aed;font-weight:600;display:block;margin-top:1px; }
+.sc.hol::after{ background:#7c3aed }
+.sc.hol .sc-vl{ color:#7c3aed }
+
+/* HOLIDAY MANAGER MODAL */
+.hol-modal-ov{
+  position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;display:none;
+  align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;backdrop-filter:blur(2px);
+}
+.hol-modal-ov.show{display:flex;opacity:1;}
+.hol-modal{
+  background:var(--white);width:90%;max-width:500px;border-radius:var(--r);
+  box-shadow:var(--sh2);position:relative;transform:translateY(20px);transition:transform 0.2s;
+  display:flex;flex-direction:column;max-height:85vh;
+}
+.hol-modal-ov.show .hol-modal{transform:translateY(0);}
+.hol-modal-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:var(--r) var(--r) 0 0;}
+.hol-modal-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.hol-modal-bdy{padding:16px 20px;overflow-y:auto;flex:1;}
+.hol-add-row{display:flex;gap:8px;margin-bottom:14px;}
+.hol-add-row input{
+  flex:1;padding:8px 11px;border:1px solid var(--bd);border-radius:var(--r-sm);
+  font-size:13px;font-family:var(--font);color:var(--tx);outline:none;transition:border-color .12s;
+}
+.hol-add-row input:focus{border-color:#7c3aed}
+.hol-add-row input[type=date]{flex:0 0 150px;}
+.btn-hol-add{
+  padding:8px 14px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r-sm);
+  font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font);
+}
+.btn-hol-add:hover{background:#6d28d9}
+.hol-list{display:flex;flex-direction:column;gap:5px;}
+.hol-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg);
+  border:1px solid var(--bd);border-radius:var(--r-sm);
+}
+.hol-item-date{font-family:'DM Mono',monospace;font-size:12px;color:#7c3aed;font-weight:600;min-width:90px;}
+.hol-item-name{flex:1;font-size:13px;color:var(--tx);}
+.hol-item-del{
+  width:22px;height:22px;border-radius:4px;border:none;background:transparent;
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--tx3);
+  cursor:pointer;transition:all .12s;
+}
+.hol-item-del:hover{background:var(--red-bg);color:var(--red);}
+.hol-empty{text-align:center;padding:24px;color:var(--tx3);font-size:13px;}
+.hol-actions{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--bd);}
+.btn-hol-sm{
+  padding:7px 13px;border-radius:var(--r-sm);font-size:12px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:5px;font-family:var(--font);transition:all .12s;border:1px solid var(--bd2);background:var(--white);color:var(--tx);
+}
+.btn-hol-sm:hover{border-color:#7c3aed;color:#7c3aed;}
+.btn-hol-sm.danger:hover{border-color:var(--red);color:var(--red);}
+#hol-file-in{display:none}
+
 /* TOAST & DRAG */
 .toast{
   position:fixed;bottom:22px;right:22px;z-index:999;background:var(--tx);color:#fff;
@@ -266,6 +327,77 @@ td:first-child{text-align:left;font-weight:600}
 <body>
 <input type="file" id="file-in" accept=".xlsx,.xls,.csv">
 <div class="drag-ov" id="drag-ov">ວາງໄຟລ໌ Excel ທີ່ນີ້</div>
+<!-- HOLIDAY MANAGER MODAL -->
+<input type="file" id="hol-file-in" accept=".json,.xlsx,.xls">
+<div class="hol-modal-ov" id="hol-modal-ov" onclick="closeHolModal()">
+  <div class="hol-modal" onclick="event.stopPropagation()">
+    <div class="hol-modal-hdr">
+      <div class="hol-modal-title">🗓️ ຈັດການວັນພັກເທດສະການ</div>
+      <button class="modal-close" onclick="closeHolModal()">✕</button>
+    </div>
+    <div class="hol-modal-bdy">
+      <!-- Action bar -->
+      <div class="hol-actions">
+        <button class="btn-hol-sm" onclick="exportHolJSON()">📥 Export JSON</button>
+        <button class="btn-hol-sm" onclick="exportHolExcel()">📗 Export Excel</button>
+        <button class="btn-hol-sm" onclick="document.getElementById('hol-file-in').click()">📂 Import</button>
+        <button class="btn-hol-sm danger" onclick="resetHolidays()">↺ Reset</button>
+      </div>
+      <!-- TABS -->
+      <div style="display:flex;gap:0;margin-bottom:14px;border:1px solid var(--bd);border-radius:var(--r-sm);overflow:hidden;">
+        <button id="tab-single" onclick="switchHolTab('single')" style="flex:1;padding:8px 4px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);background:var(--acc);color:#fff;transition:all .12s;">+ ເພີ່ມວັນດຽວ</button>
+        <button id="tab-range" onclick="switchHolTab('range')" style="flex:1;padding:8px 4px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);background:transparent;color:var(--tx2);border-left:1px solid var(--bd);transition:all .12s;">📅 ຊ່ວງວັນ</button>
+        <button id="tab-preset" onclick="switchHolTab('preset')" style="flex:1;padding:8px 4px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);background:transparent;color:var(--tx2);border-left:1px solid var(--bd);transition:all .12s;">⭐ Preset ລາວ</button>
+      </div>
+      <!-- SINGLE ADD -->
+      <div id="hol-panel-single">
+        <div class="hol-add-row">
+          <input type="date" id="hol-date" />
+          <input type="text" id="hol-name" placeholder="ຊື່ວັນພັກ" />
+          <button class="btn-hol-add" onclick="addHoliday()">+ ເພີ່ມ</button>
+        </div>
+      </div>
+      <!-- RANGE ADD -->
+      <div id="hol-panel-range" style="display:none">
+        <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r-sm);padding:12px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:10px;">ສ້າງວັນພັກຊ່ວງ (ຫຼາຍວັນ)</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:130px;">
+              <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:3px;">ວັນທີເລີ່ມ</label>
+              <input type="date" id="range-start" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);outline:none;">
+            </div>
+            <div style="flex:1;min-width:130px;">
+              <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:3px;">ວັນທີສິ້ນສຸດ</label>
+              <input type="date" id="range-end" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);outline:none;">
+            </div>
+          </div>
+          <input type="text" id="range-name" placeholder="ຊື່ວັນພັກ (ໃຊ້ຊື່ດຽວກັນທຸກວັນ)" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);outline:none;margin-bottom:8px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+              <input type="checkbox" id="range-skip-weekend" checked style="accent-color:#7c3aed;"> ຂ້າມວັນເສົາ-ອາທິດ
+            </label>
+            <button class="btn-hol-add" onclick="addHolidayRange()" style="margin-left:auto;">+ ເພີ່ມຊ່ວງວັນ</button>
+          </div>
+        </div>
+      </div>
+      <!-- PRESET -->
+      <div id="hol-panel-preset" style="display:none">
+        <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r-sm);padding:12px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px;">ວັນພັກທາງການ ສປປ ລາວ</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <select id="preset-year" style="padding:7px 10px;border:1px solid var(--bd);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);outline:none;background:var(--white);">
+              <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+            </select>
+            <button class="btn-hol-add" onclick="addPresetHolidays()" style="background:#059669;">+ ເພີ່ມວັນພັກລາວທັງໝົດ</button>
+          </div>
+          <div style="font-size:11px;color:var(--tx3);line-height:1.8;">ປີໃໝ່ · ສ້າງຕັ້ງກອງທັບ · ແມ່ຍິງ · ສ້າງຕັ້ງພັກ · ສົງການ (4 ວັນ) · ກຳມະກອນ · ເດັກ · ຊາດລາວ ແລະ ອື່ນໆ</div>
+        </div>
+      </div>
+      <div class="hol-list" id="hol-list"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- MODAL -->
@@ -317,7 +449,10 @@ td:first-child{text-align:left;font-weight:600}
         <div class="tb-sub" id="tb-sub">ເລືອກ ຫຼື Import ລາຍງານ</div>
       </div>
       <div class="tb-right" id="tb-right" style="display:none">
-        <button class="btn-ol" onclick="triggerImp()">
+        <button class="btn-ol" onclick="openHolModal()" title="ຈັດການວັນພັກ" style="gap:5px;">
+          🗓️ ວັນພັກ
+        </button>
+        <button class="btn-ol" id="btn-import-top" onclick="triggerImp()">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Import ໃໝ່
         </button>
@@ -328,6 +463,10 @@ td:first-child{text-align:left;font-weight:600}
             Export ▾
           </button>
           <div class="exp-menu" id="exp-menu">
+            <!-- Excel section -->
+            <div style="padding:6px 14px 3px;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase">
+              📗 Excel (.xlsx)
+            </div>
             <div class="exp-item" onclick="doExport('summary')">
               <span>📊</span>
               <div>
@@ -347,6 +486,26 @@ td:first-child{text-align:left;font-weight:600}
               <div>
                 <span>Export ທັງໝົດ (2 Sheets)</span>
                 <span class="ei-sub">ສະຫລຸບ + ລາຍມື້ໃນໄຟລ໌ດຽວ</span>
+              </div>
+            </div>
+            <!-- Divider -->
+            <div style="border-top:1px solid var(--bd);margin:4px 0"></div>
+            <!-- PDF section -->
+            <div style="padding:6px 14px 3px;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase">
+              📕 PDF
+            </div>
+            <div class="exp-item" onclick="doExport('pdf_summary')">
+              <span>📄</span>
+              <div>
+                <span>PDF ສະຫລຸບລາຍຄົນ</span>
+                <span class="ei-sub">A4 Landscape · ສີຕາມສະຖານະ</span>
+              </div>
+            </div>
+            <div class="exp-item" onclick="doExport('pdf_daily')">
+              <span>📑</span>
+              <div>
+                <span>PDF ລາຍລະອຽດລາຍມື້</span>
+                <span class="ei-sub">A4 Portrait · No record ສີແດງ</span>
               </div>
             </div>
           </div>
@@ -375,6 +534,7 @@ td:first-child{text-align:left;font-weight:600}
           <div class="sc red"><div class="sc-lb">ຂາດວຽກ (ມື້)</div><div class="sc-vl" id="s-absent">—</div></div>
           <div class="sc amb"><div class="sc-lb">ນາທີຊ້າລວມ</div><div class="sc-vl" id="s-late">—</div></div>
           <div class="sc grn"><div class="sc-lb">ບໍ່ສະແກນ (ຮອບ)</div><div class="sc-vl" id="s-miss">—</div></div>
+          <div class="sc hol" style="--hol:#7c3aed;grid-column:span 4;"><div class="sc-lb">🗓️ ວັນພັກເທດສະການ (ເດືອນນີ້)</div><div id="s-hol-list" style="font-size:12px;color:#7c3aed;margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;"></div></div>
         </div>
         <div class="toolbar">
           <div class="srch-box">
@@ -415,8 +575,198 @@ td:first-child{text-align:left;font-weight:600}
 
 <script>
 const DB = 'att_sheets_v4';
+const HOL_DB = 'att_holidays_v1';
 let sheets = {}, activeId = null;
 let srtKey = 'absent_days', srtAsc = false, flt = 'all';
+
+// ========== HOLIDAY FUNCTIONS ==========
+const DEFAULT_HOLIDAYS = [
+  {date:'2026-01-01',name:'ວັນປີໃໝ່ສາກົນ'},
+  {date:'2026-01-20',name:'ວັນສ້າງຕັ້ງກອງທັບ'},
+  {date:'2026-03-08',name:'ວັນແມ່ຍິງສາກົນ'},
+  {date:'2026-03-22',name:'ວັນສ້າງຕັ້ງພັກ'},
+  {date:'2026-04-13',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2026-04-14',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2026-04-15',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2026-04-16',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2026-05-01',name:'ວັນກຳມະກອນສາກົນ'},
+  {date:'2026-06-01',name:'ວັນເດັກສາກົນ'},
+  {date:'2026-07-20',name:'ວັນສ້າງຕັ້ງ ສປປ ລາວ'},
+  {date:'2026-08-13',name:'ວັນສ້າງຕັ້ງລາວ ອິດສາລາ'},
+  {date:'2026-08-23',name:'ວັນຍາ ຂາວ'},
+  {date:'2026-10-12',name:'ວັນຊາດລາວ'},
+  {date:'2026-12-02',name:'ວັນຊາດລາວ'},
+  {date:'2025-04-13',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2025-04-14',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2025-04-15',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2025-04-16',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+  {date:'2025-05-01',name:'ວັນກຳມະກອນສາກົນ'},
+  {date:'2025-12-02',name:'ວັນຊາດລາວ'},
+];
+
+let holidays = [];
+
+function loadHolidays(){
+  try{ const r=localStorage.getItem(HOL_DB); if(r) holidays=JSON.parse(r); else{ holidays=[...DEFAULT_HOLIDAYS]; saveHolidays(); } }
+  catch(e){ holidays=[...DEFAULT_HOLIDAYS]; }
+}
+function saveHolidays(){ try{ localStorage.setItem(HOL_DB,JSON.stringify(holidays)); }catch(e){} }
+
+function isHoliday(dateStr){
+  // dateStr can be various formats, normalize to YYYY-MM-DD
+  const norm = normalizeDate(dateStr);
+  return holidays.find(h=>h.date===norm)||null;
+}
+
+function normalizeDate(str){
+  if(!str) return '';
+  str=String(str).trim();
+  // YYYY-MM-DD or YYYY/MM/DD
+  let m=str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  // MM/DD or MM-DD (assume current year)
+  m=str.match(/^(\d{1,2})[-/](\d{1,2})$/);
+  if(m) return `${new Date().getFullYear()}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+  return str;
+}
+
+function openHolModal(){
+  renderHolList();
+  const ov=document.getElementById('hol-modal-ov');
+  ov.style.display='flex'; ov.offsetHeight; ov.classList.add('show');
+}
+function closeHolModal(){
+  const ov=document.getElementById('hol-modal-ov');
+  ov.classList.remove('show'); setTimeout(()=>ov.style.display='none',200);
+  // Recalc when holidays changed
+  if(activeId){ recalcForHolidays(sheets[activeId]); render(); }
+}
+
+function addHoliday(){
+  const d=document.getElementById('hol-date').value;
+  const n=document.getElementById('hol-name').value.trim();
+  if(!d||!n){ showToast('ກະລຸນາໃສ່ວັນທີ ແລະ ຊື່ວັນພັກ','err'); return; }
+  if(holidays.find(h=>h.date===d&&h.name===n)){ showToast('ວັນພັກນີ້ມີຢູ່ແລ້ວ','err'); return; }
+  holidays.push({date:d,name:n});
+  holidays.sort((a,b)=>a.date.localeCompare(b.date));
+  saveHolidays(); renderHolList(); updateHolStats();
+  document.getElementById('hol-date').value='';
+  document.getElementById('hol-name').value='';
+  showToast('ເພີ່ມວັນພັກ "'+n+'" ສຳເລັດ');
+  if(activeId) render();
+}
+
+function delHoliday(idx){
+  const h=holidays[idx];
+  if(!confirm(`ລຶບ "${h.name} (${h.date})"?`)) return;
+  holidays.splice(idx,1); saveHolidays(); renderHolList(); updateHolStats();
+  if(activeId) render();
+  showToast('ລຶບວັນພັກແລ້ວ');
+}
+
+function renderHolList(){
+  const el=document.getElementById('hol-list');
+  if(!holidays.length){ el.innerHTML='<div class="hol-empty">ຍັງບໍ່ມີວັນພັກ — ກົດ "+ ເພີ່ມ" ດ້ານເທິງ</div>'; return; }
+  el.innerHTML=holidays.map((h,i)=>`
+    <div class="hol-item">
+      <span class="hol-item-date">${h.date}</span>
+      <span class="hol-item-name">${h.name}</span>
+      <button class="hol-item-del" onclick="delHoliday(${i})" title="ລຶບ">✕</button>
+    </div>
+  `).join('');
+}
+
+/* ---- EXPORT / IMPORT / RESET ---- */
+function exportHolJSON(){
+  if(!holidays.length){ showToast('ບໍ່ມີຂໍ້ມູນວັນພັກ','err'); return; }
+  const blob=new Blob([JSON.stringify(holidays,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='holidays_gomart.json'; a.click(); URL.revokeObjectURL(a.href);
+  showToast('Export JSON ສຳເລັດ ('+holidays.length+' ວັນ)');
+}
+
+function exportHolExcel(){
+  if(!holidays.length){ showToast('ບໍ່ມີຂໍ້ມູນວັນພັກ','err'); return; }
+  const wb=XLSX.utils.book_new();
+  const rows=[['ວັນທີ (YYYY-MM-DD)','ຊື່ວັນພັກ'],...holidays.map(h=>[h.date,h.name])];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:18},{wch:35}];
+  // Style header row bold
+  ['A1','B1'].forEach(c=>{ if(ws[c]) ws[c].s={font:{bold:true},fill:{fgColor:{rgb:'EDE9FE'}}}; });
+  XLSX.utils.book_append_sheet(wb,ws,'ວັນພັກ');
+  XLSX.writeFile(wb,'holidays_gomart.xlsx');
+  showToast('Export Excel ສຳເລັດ ('+holidays.length+' ວັນ)');
+}
+
+function resetHolidays(){
+  if(!confirm('Reset ກັບຄືນຄ່າເລີ່ມຕົ້ນ? ວັນພັກທີ່ເພີ່ມເອງຈະຖືກລຶບ')) return;
+  holidays=[...DEFAULT_HOLIDAYS]; saveHolidays(); renderHolList(); updateHolStats();
+  if(activeId) render();
+  showToast('Reset ວັນພັກສຳເລັດ');
+}
+
+// Import handler
+document.getElementById('hol-file-in').addEventListener('change',function(e){
+  const f=e.target.files[0]; if(!f) return; e.target.value='';
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(ext==='json'){
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const arr=JSON.parse(ev.target.result);
+        if(!Array.isArray(arr)) throw new Error('invalid');
+        let added=0;
+        arr.forEach(h=>{
+          if(h.date&&h.name&&!holidays.find(x=>x.date===h.date&&x.name===h.name)){
+            holidays.push({date:String(h.date).trim(),name:String(h.name).trim()}); added++;
+          }
+        });
+        holidays.sort((a,b)=>a.date.localeCompare(b.date));
+        saveHolidays(); renderHolList(); updateHolStats();
+        if(activeId) render();
+        showToast('Import ສຳເລັດ: ເພີ່ມ '+added+' ວັນ');
+      }catch(err){ showToast('ໄຟລ໌ JSON ຜິດຮູບແບບ','err'); }
+    };
+    r.readAsText(f,'UTF-8');
+  } else if(ext==='xlsx'||ext==='xls'){
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        let added=0;
+        rows.forEach((row,i)=>{
+          if(i===0) return; // skip header
+          const date=String(row[0]||'').trim(); const name=String(row[1]||'').trim();
+          if(date&&name&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&!holidays.find(x=>x.date===date&&x.name===name)){
+            holidays.push({date,name}); added++;
+          }
+        });
+        holidays.sort((a,b)=>a.date.localeCompare(b.date));
+        saveHolidays(); renderHolList(); updateHolStats();
+        if(activeId) render();
+        showToast('Import Excel ສຳເລັດ: ເພີ່ມ '+added+' ວັນ');
+      }catch(err){ showToast('ອ່ານໄຟລ໌ Excel ບໍ່ໄດ້','err'); }
+    };
+    r.readAsBinaryString(f);
+  } else { showToast('ຮອງຮັບ .json ຫຼື .xlsx ເທົ່ານັ້ນ','err'); }
+});
+
+function updateHolStats(){
+  const el=document.getElementById('s-hol-list');
+  if(!el) return;
+  // Get holidays relevant to current sheet's month if possible
+  let relevant=holidays;
+  if(activeId){
+    const name=sheets[activeId].name; // e.g. "2026-04"
+    const m=name.match(/(\d{4}-\d{2})/);
+    if(m) relevant=holidays.filter(h=>h.date.startsWith(m[1]));
+  }
+  if(!relevant.length){ el.innerHTML='<span style="color:var(--tx3);font-size:12px">ບໍ່ມີວັນພັກໃນເດືອນນີ້</span>'; return; }
+  el.innerHTML=relevant.map(h=>`<span class="hol-badge">📅 ${h.date} · ${h.name}</span>`).join('');
+}
+// ========== END HOLIDAY FUNCTIONS ==========
 
 function save(){ try{ localStorage.setItem(DB, JSON.stringify(sheets)); }catch(e){} }
 function load(){ try{ const r=localStorage.getItem(DB); if(r) sheets=JSON.parse(r); }catch(e){ sheets={}; } }
@@ -509,22 +859,80 @@ function delSheet(e,id){
 
 function showWelcome(){
   document.getElementById('welcome').style.display=''; document.getElementById('dview').style.display='none';
-  document.getElementById('tb-right').style.display='none';
+  document.getElementById('tb-right').style.display='flex';
+  document.getElementById('btn-import-top').style.display='none';
+  document.getElementById('exp-wrap').style.display='none';
   document.getElementById('tb-title').textContent='Attendance Report';
   document.getElementById('tb-sub').textContent='ເລືອກ ຫຼື Import ລາຍງານ';
+  updateHolStats();
+}
+
+function recalcForHolidays(s){
+  s.data.forEach(r=>{
+    if(!r.daily||!r.daily.length) return;
+    let holWorkDays=0, holAbsent=0, holMissed=0;
+    r.daily.forEach(d=>{
+      if(!isHoliday(d.date)) return;
+      holWorkDays++;
+      const st=String(d.status||'').toLowerCase();
+      // Count absent on holiday
+      if(st.includes('ຂາດ')||st.includes('absent')||st==='-'||st===''||st==='nan'||st.includes('no record')){
+        holAbsent++;
+      }
+      // Count missed scans on holiday — "no record" style statuses per scan slot
+      // Each holiday day could have up to 2 missed (in+out). Count parts that are no record.
+      const parts=st.split(',').map(p=>p.trim());
+      parts.forEach(p=>{
+        if(p==='-'||p===''||p==='nan'||p.includes('no record')) holMissed++;
+      });
+      // If full day no record (single value), count as 2 missed (in+out)
+      if(parts.length===1&&(st==='-'||st===''||st==='nan'||st.includes('no record'))) holMissed++;
+    });
+    r.expected_days_adj = Math.max(0, (r.expected_days||0) - holWorkDays);
+    r.absent_days_adj   = Math.max(0, (r.absent_days||0)   - holAbsent);
+    r.missed_total_adj  = Math.max(0, (r.missed_total||0)  - holMissed);
+    r.missed_in_adj     = Math.max(0, (r.missed_in||0)     - Math.ceil(holMissed/2));
+    r.missed_out_adj    = Math.max(0, (r.missed_out||0)    - Math.floor(holMissed/2));
+    r.holiday_days      = holWorkDays;
+  });
+}
+
+function getAdj(r, key){
+  if(key==='absent_days')   return r.absent_days_adj   !== undefined ? r.absent_days_adj   : r.absent_days;
+  if(key==='expected_days') return r.expected_days_adj !== undefined ? r.expected_days_adj : r.expected_days;
+  if(key==='missed_total')  return r.missed_total_adj  !== undefined ? r.missed_total_adj  : r.missed_total;
+  if(key==='missed_in')     return r.missed_in_adj     !== undefined ? r.missed_in_adj     : r.missed_in;
+  if(key==='missed_out')    return r.missed_out_adj    !== undefined ? r.missed_out_adj    : r.missed_out;
+  return r[key];
+}
+
+function mkBadgeAdj(r){
+  const ab=getAdj(r,'absent_days');
+  if(ab>=10) return '<span class="badge b-bd">⚠ ຂາດຫຼາຍ</span>';
+  if(ab>=3||r.late_min>=60||getAdj(r,'missed_total')>=10) return '<span class="badge b-wn">! ຕ້ອງກວດ</span>';
+  return '<span class="badge b-ok">✓ ປົກກະຕິ</span>';
+}
+function mkBadgeTextAdj(r){
+  const ab=getAdj(r,'absent_days');
+  if(ab>=10) return 'ຂາດຫຼາຍ';
+  if(ab>=3||r.late_min>=60||getAdj(r,'missed_total')>=10) return 'ຕ້ອງກວດ';
+  return 'ປົກກະຕິ';
 }
 
 function activate(id){
   activeId=id; renderSB(); const s=sheets[id];
+  recalcForHolidays(s);
   document.getElementById('welcome').style.display='none'; document.getElementById('dview').style.display='';
   document.getElementById('tb-right').style.display='flex';
+  document.getElementById('btn-import-top').style.display='';
+  document.getElementById('exp-wrap').style.display='';
   document.getElementById('tb-title').textContent='ລາຍງານ '+s.name;
   document.getElementById('tb-sub').textContent=`VARIGO+ · ${s.data.length} ຄົນ · ບັນທຶກ ${s.saved}`;
   document.getElementById('saved-pill').style.display=''; document.getElementById('srch').value='';
   flt='all'; document.querySelectorAll('.fb').forEach(b=>b.classList.toggle('active',b.dataset.f==='all'));
   srtKey='absent_days'; srtAsc=false; document.querySelectorAll('thead th').forEach(t=>t.classList.remove('srt'));
   const el=document.getElementById('th-absent_days'); if(el) el.classList.add('srt');
-  updateStats(s.data); render();
+  updateStats(s.data); updateHolStats(); render();
 }
 
 function setFlt(f,el){ flt=f; document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
@@ -568,18 +976,23 @@ function showDetail(name){
   const emp=sheets[activeId].data.find(r=>r.name===name); if(!emp) return;
   document.getElementById('m-av').textContent=emp.name.charAt(0).toUpperCase();
   document.getElementById('m-nm').textContent=emp.name;
-  document.getElementById('m-st').innerHTML=mkBadge(emp);
+  document.getElementById('m-st').innerHTML=mkBadgeAdj(emp);
   document.getElementById('m-grid').innerHTML=`
     <div class="m-item"><div class="m-lb">ການມາ / ວັນວຽກ</div><div class="m-vl">${emp.present_days}/${emp.expected_days}</div></div>
-    <div class="m-item"><div class="m-lb">ຂາດວຽກ (ມື້)</div><div class="m-vl" style="color:${emp.absent_days>0?'var(--red)':'var(--tx)'}">${emp.absent_days}</div></div>
+    <div class="m-item"><div class="m-lb">ຂາດວຽກ (ມື້)</div><div class="m-vl" style="color:${getAdj(emp,'absent_days')>0?'var(--red)':'var(--tx)'}">${getAdj(emp,'absent_days')}${emp.holiday_days>0?' <small style="color:#7c3aed;font-size:10px">(ຫັກ '+emp.holiday_days+' ວັນພັກ)</small>':''}</div></div>
     <div class="m-item"><div class="m-lb">ມາຊ້າ (ຄັ້ງ / ນທ)</div><div class="m-vl" style="color:${emp.late_count>0?'var(--amb)':'var(--tx)'}">${emp.late_count} / ${emp.late_min}</div></div>
     <div class="m-item"><div class="m-lb">ອອກໄວ (ຄັ້ງ / ນທ)</div><div class="m-vl">${emp.early_count} / ${emp.early_min}</div></div>
-    <div class="m-item"><div class="m-lb">ລືມສະແກນເຂົ້າ</div><div class="m-vl">${emp.missed_in}</div></div>
-    <div class="m-item"><div class="m-lb">ລືມສະແກນອອກ</div><div class="m-vl">${emp.missed_out}</div></div>
+    <div class="m-item"><div class="m-lb">ລືມສະແກນເຂົ້າ</div><div class="m-vl">${getAdj(emp,'missed_in')}</div></div>
+    <div class="m-item"><div class="m-lb">ລືມສະແກນອອກ</div><div class="m-vl">${getAdj(emp,'missed_out')}</div></div>
   `;
   const tbody=document.getElementById('m-daily');
   if(emp.daily&&emp.daily.length>0){
-    tbody.innerHTML=emp.daily.map(d=>`<tr><td>${d.date}</td><td>${styleStatus(d.status)}</td></tr>`).join('');
+    tbody.innerHTML=emp.daily.map(d=>{
+      const hol=isHoliday(d.date);
+      const holLabel=hol?`<span class="hol-label">🗓️ ${hol.name}</span>`:'';
+      const rowClass=hol?' class="hol-row"':'';
+      return `<tr${rowClass}><td>${d.date}${holLabel}</td><td>${hol?'<span class="hol-badge">ວັນພັກ</span>':styleStatus(d.status)}</td></tr>`;
+    }).join('');
   } else {
     tbody.innerHTML=`<tr><td colspan="2"><div class="empty"><p>ບໍ່ມີຂໍ້ມູນລາຍມື້<br><small style="color:var(--amb)">Import ໄຟລ໌ Excel ຄືນໃໝ່ເພື່ອດຶງຂໍ້ມູນ</small></p></div></td></tr>`;
   }
@@ -596,17 +1009,17 @@ function render(){
   if(!activeId) return;
   const q=document.getElementById('srch').value.toLowerCase();
   let data=sheets[activeId].data.filter(r=>r.name.toLowerCase().includes(q));
-  if(flt==='bad') data=data.filter(r=>r.absent_days>=10);
+  if(flt==='bad') data=data.filter(r=>getAdj(r,'absent_days')>=10);
   else if(flt==='late') data=data.filter(r=>r.late_count>0);
-  else if(flt==='miss') data=data.filter(r=>r.missed_total>0);
-  data.sort((a,b)=>{ const av=a[srtKey],bv=b[srtKey]; if(typeof av==='string') return srtAsc?av.localeCompare(bv):bv.localeCompare(av); return srtAsc?av-bv:bv-av; });
+  else if(flt==='miss') data=data.filter(r=>getAdj(r,'missed_total')>0);
+  data.sort((a,b)=>{ const _adj_keys=['absent_days','expected_days','missed_total']; const av=_adj_keys.includes(srtKey)?getAdj(a,srtKey):a[srtKey], bv=_adj_keys.includes(srtKey)?getAdj(b,srtKey):b[srtKey]; if(typeof av==='string') return srtAsc?av.localeCompare(bv):bv.localeCompare(av); return srtAsc?av-bv:bv-av; });
   if(!data.length){ document.getElementById('tbody').innerHTML=`<tr><td colspan="9"><div class="empty"><p>ບໍ່ພົບຂໍ້ມູນ</p></div></td></tr>`; document.getElementById('tbl-ct').textContent=''; return; }
   document.getElementById('tbody').innerHTML=data.map(r=>`<tr onclick="showDetail('${r.name.replace(/'/g,"\\'")}')">
     <td>${r.name}</td><td class="mn">${r.expected_days}</td>
-    <td>${pbar(r.present_days,r.expected_days)}</td>
-    <td>${nc(r.absent_days,3,10)}</td><td>${nc(r.late_count,3,8)}</td>
+    <td>${pbar(r.present_days,getAdj(r,'expected_days'))}</td>
+    <td>${nc(getAdj(r,'absent_days'),3,10)}</td><td>${nc(r.late_count,3,8)}</td>
     <td>${nc(r.late_min,30,90)}</td><td>${nc(r.early_count,2,5)}</td>
-    <td>${nc(r.missed_total,5,15)}</td><td>${mkBadge(r)}</td>
+    <td>${nc(getAdj(r,'missed_total'),5,15)}</td><td>${mkBadgeAdj(r)}</td>
   </tr>`).join('');
   document.getElementById('tbl-ct').textContent=`ສະແດງ ${data.length} / ${sheets[activeId].data.length} ຄົນ`;
   updateStats(data);
@@ -614,62 +1027,9 @@ function render(){
 
 function updateStats(d){
   document.getElementById('s-total').textContent=d.length;
-  document.getElementById('s-absent').textContent=d.reduce((a,r)=>a+r.absent_days,0);
+  document.getElementById('s-absent').textContent=d.reduce((a,r)=>a+getAdj(r,'absent_days'),0);
   document.getElementById('s-late').textContent=d.reduce((a,r)=>a+r.late_min,0);
-  document.getElementById('s-miss').textContent=d.reduce((a,r)=>a+r.missed_total,0);
-}
-
-// ── EXPORT ─────────────────────────────────────────────────────────
-function dlBlob(wb, fname){
-  const b64 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
-  const uri = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64;
-  const a   = document.createElement('a');
-  a.href = uri; a.download = fname; a.style.display='none';
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>document.body.removeChild(a), 500);
-  showToast('Export ສຳເລັດ ✓');
-}
-
-function doExport(type){
-  document.getElementById('exp-menu').classList.remove('open');
-  if(!activeId) return;
-  const s=sheets[activeId];
-  const wb=XLSX.utils.book_new();
-
-  if(type==='summary'||type==='full'){
-    const sumRows=s.data.map(r=>({
-      'ຊື່ພະນັກງານ':r.name,
-      'ວັນເຮັດວຽກ':r.expected_days,
-      'ມາ (ມື້)':r.present_days,
-      'ຂາດ (ມື້)':r.absent_days,
-      'ມາຊ້າ (ຄັ້ງ)':r.late_count,
-      'ນາທີຊ້າ':r.late_min,
-      'ອອກໄວ (ຄັ້ງ)':r.early_count,
-      'ນາທີອອກໄວ':r.early_min,
-      'ບໍ່ສະແກນເຂົ້າ':r.missed_in,
-      'ບໍ່ສະແກນອອກ':r.missed_out,
-      'ບໍ່ສະແກນລວມ':r.missed_total,
-      'ສະຖານະ':mkBadgeText(r)
-    }));
-    const ws=XLSX.utils.json_to_sheet(sumRows);
-    ws['!cols']=[{wch:25},{wch:12},{wch:10},{wch:10},{wch:14},{wch:12},{wch:14},{wch:14},{wch:16},{wch:16},{wch:14},{wch:12}];
-    XLSX.utils.book_append_sheet(wb,'ສະຫລຸບ',ws);
-  }
-
-  if(type==='daily'||type==='full'){
-    const dailyRows=[];
-    s.data.forEach(r=>{
-      (r.daily||[]).forEach(d=>{
-        dailyRows.push({'ຊື່ພະນັກງານ':r.name,'ວັນທີ':d.date,'ສະຖານະ':d.status});
-      });
-    });
-    const wsD=XLSX.utils.json_to_sheet(dailyRows.length?dailyRows:[{'ໝາຍເຫດ':'ບໍ່ມີຂໍ້ມູນລາຍມື້'}]);
-    wsD['!cols']=[{wch:25},{wch:22},{wch:40}];
-    XLSX.utils.book_append_sheet(wb,'ລາຍມື້',wsD);
-  }
-
-  const fmap={summary:`attendance_summary_${s.name}.xlsx`, daily:`attendance_daily_${s.name}.xlsx`, full:`attendance_full_${s.name}.xlsx`};
-  dlBlob(wb, fmap[type]||`attendance_${s.name}.xlsx`);
+  document.getElementById('s-miss').textContent=d.reduce((a,r)=>a+getAdj(r,'missed_total'),0);
 }
 
 let toastTmr;
@@ -679,7 +1039,299 @@ function showToast(msg,type){
   el.classList.add('show'); clearTimeout(toastTmr); toastTmr=setTimeout(()=>el.classList.remove('show'),2800);
 }
 
-load(); renderSB();
+
+// ========== TAB SWITCHER FOR HOLIDAY MODAL ==========
+function switchHolTab(tab){
+  ['single','range','preset'].forEach(t=>{
+    document.getElementById('hol-panel-'+t).style.display = t===tab ? '' : 'none';
+    const btn = document.getElementById('tab-'+t);
+    btn.style.background = t===tab ? 'var(--acc)' : 'transparent';
+    btn.style.color = t===tab ? '#fff' : 'var(--tx2)';
+  });
+}
+
+// ========== RANGE ADD ==========
+function addHolidayRange(){
+  const start = document.getElementById('range-start').value;
+  const end   = document.getElementById('range-end').value;
+  const name  = document.getElementById('range-name').value.trim();
+  const skipWknd = document.getElementById('range-skip-weekend').checked;
+  if(!start||!end||!name){ showToast('ກະລຸນາໃສ່ຂໍ້ມູນໃຫ້ຄົບ','err'); return; }
+  if(start>end){ showToast('ວັນທີເລີ່ມຕ້ອງກ່ອນ ຫຼື ເທົ່າກັບ ສິ້ນສຸດ','err'); return; }
+  let cur = new Date(start); const fin = new Date(end); let added = 0;
+  while(cur<=fin){
+    const dow = cur.getDay();
+    if(!skipWknd || (dow!==0 && dow!==6)){
+      const d = cur.toISOString().slice(0,10);
+      if(!holidays.find(h=>h.date===d&&h.name===name)){
+        holidays.push({date:d, name});
+        added++;
+      }
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  holidays.sort((a,b)=>a.date.localeCompare(b.date));
+  saveHolidays(); renderHolList(); updateHolStats();
+  if(activeId) render();
+  document.getElementById('range-start').value='';
+  document.getElementById('range-end').value='';
+  document.getElementById('range-name').value='';
+  showToast('ເພີ່ມຊ່ວງວັນ "'+name+'" ສຳເລັດ ('+added+' ວັນ)');
+}
+
+// ========== PRESET HOLIDAYS ==========
+function getLaoHolidays(year){
+  const y=parseInt(year);
+  return [
+    {date:`${y}-01-01`,name:'ວັນປີໃໝ່ສາກົນ'},
+    {date:`${y}-01-20`,name:'ວັນສ້າງຕັ້ງກອງທັບປະຊາຊົນລາວ'},
+    {date:`${y}-03-08`,name:'ວັນແມ່ຍິງສາກົນ'},
+    {date:`${y}-03-22`,name:'ວັນສ້າງຕັ້ງພັກປະຊາຊົນລາວ'},
+    {date:`${y}-04-13`,name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+    {date:`${y}-04-14`,name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+    {date:`${y}-04-15`,name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+    {date:`${y}-04-16`,name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
+    {date:`${y}-05-01`,name:'ວັນກຳມະກອນສາກົນ'},
+    {date:`${y}-06-01`,name:'ວັນເດັກສາກົນ'},
+    {date:`${y}-07-20`,name:'ວັນສ້າງຕັ້ງ ສປປ ລາວ'},
+    {date:`${y}-08-13`,name:'ວັນລາວອິດສາລາ'},
+    {date:`${y}-08-23`,name:'ວັນຍາຂາວ (ຊາວໃຫ້ທານ)'},
+    {date:`${y}-10-12`,name:'ວັນອອກພັນສາ'},
+    {date:`${y}-12-02`,name:'ວັນຊາດລາວ'},
+  ];
+}
+
+function addPresetHolidays(){
+  const year = document.getElementById('preset-year').value;
+  const presets = getLaoHolidays(year);
+  let added = 0;
+  presets.forEach(h=>{
+    if(!holidays.find(x=>x.date===h.date&&x.name===h.name)){
+      holidays.push(h); added++;
+    }
+  });
+  holidays.sort((a,b)=>a.date.localeCompare(b.date));
+  saveHolidays(); renderHolList(); updateHolStats();
+  if(activeId) render();
+  showToast('ເພີ່ມ Preset ລາວ '+year+' ສຳເລັດ ('+added+' ວັນ)');
+}
+
+// ========== EXPORT FUNCTIONS ==========
+function doExport(type){
+  if(!activeId){ showToast('ບໍ່ມີລາຍງານທີ່ເລືອກ','err'); return; }
+  document.getElementById('exp-menu').classList.remove('open');
+  const s=sheets[activeId];
+  if(type==='summary') exportSummary(s);
+  else if(type==='daily') exportDaily(s);
+  else if(type==='full') exportFull(s);
+  else if(type==='pdf_summary') exportPDFSummary(s);
+  else if(type==='pdf_daily') exportPDFDaily(s);
+}
+
+function getCellStyle(fill,bold,align,color){
+  const s={};
+  if(fill) s.fill={fgColor:{rgb:fill}};
+  if(bold) s.font={bold:true,color:color?{rgb:color}:undefined};
+  else if(color) s.font={color:{rgb:color}};
+  if(align) s.alignment={horizontal:align,vertical:'center',wrapText:true};
+  return s;
+}
+
+function exportSummary(s){
+  const wb=XLSX.utils.book_new();
+  const headers=['ລຳດັບ','ຊື່-ນາມສະກຸນ','ວັນວຽກ','ມາ (ວັນ)','ຂາດ (ວັນ)','ຊ້າ (ຄັ້ງ)','ນາທີຊ້າ','ຮອບລືມ','ສະຖານະ'];
+  const rows=[headers,...s.data.map((r,i)=>[
+    i+1, r.name, getAdj(r,'expected_days'), r.present_days, getAdj(r,'absent_days'),
+    r.late_count, r.late_min, getAdj(r,'missed_total'), mkBadgeTextAdj(r)
+  ])];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:5},{wch:28},{wch:8},{wch:8},{wch:8},{wch:8},{wch:10},{wch:10},{wch:12}];
+  // Style header
+  headers.forEach((_,ci)=>{
+    const ref=XLSX.utils.encode_cell({r:0,c:ci});
+    if(!ws[ref]) ws[ref]={v:headers[ci],t:'s'};
+    ws[ref].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2563EB'}},alignment:{horizontal:'center',vertical:'center'}};
+  });
+  // Style data rows
+  s.data.forEach((r,ri)=>{
+    const rowI=ri+1;
+    // Color absent cell
+    const abRef=XLSX.utils.encode_cell({r:rowI,c:4});
+    if(ws[abRef]){ const _ab=getAdj(r,'absent_days'); ws[abRef].v=_ab; ws[abRef].s={font:{bold:_ab>=3,color:{rgb:_ab>=10?'DC2626':_ab>=3?'D97706':'059669'}},alignment:{horizontal:'center'}}; }
+    // Status cell
+    const stRef=XLSX.utils.encode_cell({r:rowI,c:8});
+    if(ws[stRef]){
+      const _abst=getAdj(r,'absent_days'); const color=_abst>=10?'DC2626':_abst>=3||r.late_min>=60?'D97706':'059669';
+      ws[stRef].s={font:{bold:true,color:{rgb:color}},alignment:{horizontal:'center'}};
+    }
+    // Center numeric columns
+    [2,3,4,5,6,7].forEach(ci=>{
+      const ref=XLSX.utils.encode_cell({r:rowI,c:ci});
+      if(ws[ref]) ws[ref].s={...( ws[ref].s||{}), alignment:{horizontal:'center'}};
+    });
+  });
+  ws['!freeze']={xSplit:0,ySplit:1};
+  XLSX.utils.book_append_sheet(wb,ws,'ສະຫລຸບ');
+  XLSX.writeFile(wb,`attendance_summary_${s.name}.xlsx`);
+  showToast('Export Summary ສຳເລັດ ('+s.data.length+' ຄົນ)');
+}
+
+function exportDaily(s){
+  if(!s.data.some(r=>r.daily&&r.daily.length>0)){
+    showToast('ບໍ່ມີຂໍ້ມູນລາຍມື້','err'); return;
+  }
+  const wb=XLSX.utils.book_new();
+  // Collect all unique dates
+  const allDates=[...new Set(s.data.flatMap(r=>(r.daily||[]).map(d=>d.date)))].sort();
+  const headers=['ລຳດັບ','ຊື່ພະນັກງານ',...allDates];
+  const rows=[headers,...s.data.map((r,i)=>{
+    const dayMap={};
+    (r.daily||[]).forEach(d=>{ dayMap[d.date]=d.status; });
+    return [i+1, r.name, ...allDates.map(d=>dayMap[d]||'-')];
+  })];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:5},{wch:28},...allDates.map(()=>({wch:14}))];
+  // Header style
+  headers.forEach((_,ci)=>{
+    const ref=XLSX.utils.encode_cell({r:0,c:ci});
+    if(!ws[ref]) ws[ref]={v:headers[ci],t:'s'};
+    ws[ref].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2563EB'}},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  });
+  // Highlight holidays in header
+  allDates.forEach((d,di)=>{
+    const hol=isHoliday(d);
+    if(hol){
+      const ref=XLSX.utils.encode_cell({r:0,c:di+2});
+      if(ws[ref]) ws[ref].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'7C3AED'}},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+    }
+  });
+  ws['!freeze']={xSplit:2,ySplit:1};
+  XLSX.utils.book_append_sheet(wb,ws,'ລາຍມື້');
+  XLSX.writeFile(wb,`attendance_daily_${s.name}.xlsx`);
+  showToast('Export Daily ສຳເລັດ');
+}
+
+function exportFull(s){
+  const wb=XLSX.utils.book_new();
+  // Sheet 1: Summary
+  const h1=['ລຳດັບ','ຊື່-ນາມສະກຸນ','ວັນວຽກ','ມາ (ວັນ)','ຂາດ (ວັນ)','ຊ້າ (ຄັ້ງ)','ນາທີຊ້າ','ຮອບລືມ','ສະຖານະ'];
+  const r1=[h1,...s.data.map((r,i)=>[i+1,r.name,getAdj(r,'expected_days'),r.present_days,getAdj(r,'absent_days'),r.late_count,r.late_min,getAdj(r,'missed_total'),mkBadgeTextAdj(r)])];
+  const ws1=XLSX.utils.aoa_to_sheet(r1);
+  ws1['!cols']=[{wch:5},{wch:28},{wch:8},{wch:8},{wch:8},{wch:8},{wch:10},{wch:10},{wch:12}];
+  h1.forEach((_,ci)=>{
+    const ref=XLSX.utils.encode_cell({r:0,c:ci});
+    if(!ws1[ref]) ws1[ref]={v:h1[ci],t:'s'};
+    ws1[ref].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2563EB'}},alignment:{horizontal:'center'}};
+  });
+  ws1['!freeze']={xSplit:0,ySplit:1};
+  XLSX.utils.book_append_sheet(wb,ws1,'ສະຫລຸບ');
+  // Sheet 2: Daily (if available)
+  if(s.data.some(r=>r.daily&&r.daily.length>0)){
+    const allDates=[...new Set(s.data.flatMap(r=>(r.daily||[]).map(d=>d.date)))].sort();
+    const h2=['ລຳດັບ','ຊື່ພະນັກງານ',...allDates];
+    const r2=[h2,...s.data.map((r,i)=>{
+      const dm={};(r.daily||[]).forEach(d=>{dm[d.date]=d.status;});
+      return [i+1,r.name,...allDates.map(d=>dm[d]||'-')];
+    })];
+    const ws2=XLSX.utils.aoa_to_sheet(r2);
+    ws2['!cols']=[{wch:5},{wch:28},...allDates.map(()=>({wch:14}))];
+    h2.forEach((_,ci)=>{
+      const ref=XLSX.utils.encode_cell({r:0,c:ci});
+      if(!ws2[ref]) ws2[ref]={v:h2[ci],t:'s'};
+      ws2[ref].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2563EB'}},alignment:{horizontal:'center',wrapText:true}};
+    });
+    ws2['!freeze']={xSplit:2,ySplit:1};
+    XLSX.utils.book_append_sheet(wb,ws2,'ລາຍມື້');
+  }
+  XLSX.writeFile(wb,`attendance_full_${s.name}.xlsx`);
+  showToast('Export ທັງໝົດສຳເລັດ');
+}
+
+// ========== PDF EXPORT ==========
+function exportPDFSummary(s){
+  const rows=s.data;
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Phetsarath&display=swap');
+    body{font-family:'Phetsarath',serif;font-size:12px;margin:0;padding:16px;color:#1a1d27;}
+    h2{font-size:16px;margin-bottom:4px;} .sub{color:#6b7080;font-size:11px;margin-bottom:14px;}
+    table{width:100%;border-collapse:collapse;font-size:11px;}
+    th{background:#2563eb;color:#fff;padding:7px 8px;text-align:center;font-weight:600;}
+    th:first-child,th:nth-child(2){text-align:left;}
+    td{padding:6px 8px;border-bottom:1px solid #e3e6ed;text-align:center;}
+    td:first-child{text-align:right;width:30px;} td:nth-child(2){text-align:left;font-weight:600;}
+    tr:nth-child(even) td{background:#f4f6f9;}
+    .ok{color:#059669;font-weight:700;} .wn{color:#d97706;font-weight:700;} .bd{color:#dc2626;font-weight:700;}
+    .ft{margin-top:10px;font-size:10px;color:#b0b7c8;text-align:right;}
+  </style></head><body>
+  <h2>ລາຍງານສະຫລຸບການເຂົ້າວຽກ — ${s.name}</h2>
+  <div class="sub">ທັງໝົດ ${rows.length} ຄົນ · ສ້າງເມື່ອ ${new Date().toLocaleDateString('lo-LA')}</div>
+  <table><thead><tr>
+    <th>#</th><th>ຊື່</th><th>ວັນວຽກ</th><th>ການມາ</th><th>ຂາດ</th><th>ຊ້າ (ຄັ້ງ)</th><th>ນາທີຊ້າ</th><th>ລືມ</th><th>ສະຖານະ</th>
+  </tr></thead><tbody>
+  ${rows.map((r,i)=>{
+    const cls=r.absent_days>=10?'bd':r.absent_days>=3||r.late_min>=60?'wn':'ok';
+    return `<tr><td>${i+1}</td><td>${r.name}</td><td>${r.expected_days}</td><td>${r.present_days}</td>
+    <td class="${cls}">${r.absent_days}</td><td>${r.late_count}</td><td>${r.late_min}</td>
+    <td>${getAdj(r,'missed_total')}</td><td class="${cls}">${mkBadgeTextAdj(r)}</td></tr>`;
+  }).join('')}
+  </tbody></table>
+  <div class="ft">Attendance · VARIGO+ | Printed ${new Date().toLocaleString('lo-LA')}</div>
+  <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`;
+  const w=window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+function exportPDFDaily(s){
+  if(!s.data.some(r=>r.daily&&r.daily.length>0)){
+    showToast('ບໍ່ມີຂໍ້ມູນລາຍມື້','err'); return;
+  }
+  const rows=s.data;
+  let body='';
+  rows.forEach((r,ri)=>{
+    const badge=mkBadgeTextAdj(r);
+    const cls=r.absent_days>=10?'bd':r.absent_days>=3?'wn':'ok';
+    body+=`<div class="emp-block"><div class="emp-hdr"><span class="emp-nm">${r.name}</span><span class="emp-st ${cls}">${badge}</span><span class="emp-info">ຂາດ ${getAdj(r,'absent_days')} · ຊ້າ ${r.late_count} ຄັ້ງ</span></div>
+    <table><thead><tr><th>ວັນທີ</th><th>ສະຖານະ</th><th>ໝາຍເຫດ</th></tr></thead><tbody>
+    ${(r.daily||[]).map(d=>{
+      const hol=isHoliday(d.date);
+      const rowCls=hol?'hol-row':'';
+      const statusTxt=hol?'ວັນພັກ':(d.status||'-');
+      const note=hol?hol.name:'';
+      const stCls=statusTxt.toLowerCase().includes('ຂາດ')||statusTxt.toLowerCase().includes('absent')?'st-ab':
+        statusTxt.toLowerCase().includes('ຊ້າ')||statusTxt.toLowerCase().includes('late')?'st-lt':
+        statusTxt==='ວັນພັກ'?'st-hol':'st-ok';
+      return `<tr class="${rowCls}"><td>${d.date}</td><td class="${stCls}">${statusTxt}</td><td>${note}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+    if(ri<rows.length-1) body+='<div class="pb"></div>';
+  });
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Phetsarath&display=swap');
+    body{font-family:'Phetsarath',serif;font-size:11px;margin:0;padding:16px;color:#1a1d27;}
+    h2{font-size:15px;margin-bottom:12px;}
+    .emp-block{margin-bottom:20px;page-break-inside:avoid;}
+    .emp-hdr{display:flex;align-items:center;gap:10px;background:#eff4ff;border-left:4px solid #2563eb;padding:7px 12px;border-radius:0 6px 6px 0;margin-bottom:6px;}
+    .emp-nm{font-weight:700;font-size:13px;flex:1;}
+    .emp-st{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;}
+    .emp-info{font-size:10px;color:#6b7080;}
+    .ok{background:#ecfdf5;color:#059669;} .wn{background:#fffbeb;color:#d97706;} .bd{background:#fff1f1;color:#dc2626;}
+    table{width:100%;border-collapse:collapse;font-size:10px;}
+    th{background:#f4f6f9;padding:5px 8px;text-align:left;border-bottom:1px solid #e3e6ed;font-weight:600;color:#6b7080;}
+    td{padding:4px 8px;border-bottom:1px solid #f0f2f6;}
+    .hol-row td{background:#fdf4ff;}
+    .st-ab{color:#dc2626;font-weight:700;} .st-lt{color:#d97706;} .st-hol{color:#7c3aed;font-weight:600;} .st-ok{color:#059669;}
+    .pb{page-break-after:always;}
+  </style></head><body>
+  <h2>ລາຍງານລາຍມື້ — ${s.name} · ${rows.length} ຄົນ</h2>
+  ${body}
+  <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`;
+  const w=window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+loadHolidays(); load(); renderSB();
 const ids=Object.keys(sheets);
 if(ids.length) activate(ids[ids.length-1]); else showWelcome();
 </script>
