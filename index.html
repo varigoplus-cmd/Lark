@@ -341,7 +341,7 @@ td:first-child{text-align:left;font-weight:600}
         <button class="btn-hol-sm" onclick="exportHolJSON()">📥 Export JSON</button>
         <button class="btn-hol-sm" onclick="exportHolExcel()">📗 Export Excel</button>
         <button class="btn-hol-sm" onclick="document.getElementById('hol-file-in').click()">📂 Import</button>
-        <button class="btn-hol-sm danger" onclick="resetHolidays()">↺ Reset</button>
+        <button class="btn-hol-sm danger" onclick="resetHolidays()">🗑 ລຶບທັງໝົດ</button>
       </div>
       <!-- TABS -->
       <div style="display:flex;gap:0;margin-bottom:14px;border:1px solid var(--bd);border-radius:var(--r-sm);overflow:hidden;">
@@ -575,34 +575,12 @@ td:first-child{text-align:left;font-weight:600}
 
 <script>
 const DB = 'att_sheets_v4';
-const HOL_DB = 'att_holidays_v1';
+const HOL_DB = 'att_holidays_v2'; // v2: ເລີ່ມຕົ້ນດ້ວຍລາຍການວ່າງ (ລຶບ cache v1)
 let sheets = {}, activeId = null;
 let srtKey = 'absent_days', srtAsc = false, flt = 'all';
 
 // ========== HOLIDAY FUNCTIONS ==========
-const DEFAULT_HOLIDAYS = [
-  {date:'2026-01-01',name:'ວັນປີໃໝ່ສາກົນ'},
-  {date:'2026-01-20',name:'ວັນສ້າງຕັ້ງກອງທັບ'},
-  {date:'2026-03-08',name:'ວັນແມ່ຍິງສາກົນ'},
-  {date:'2026-03-22',name:'ວັນສ້າງຕັ້ງພັກ'},
-  {date:'2026-04-13',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2026-04-14',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2026-04-15',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2026-04-16',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2026-05-01',name:'ວັນກຳມະກອນສາກົນ'},
-  {date:'2026-06-01',name:'ວັນເດັກສາກົນ'},
-  {date:'2026-07-20',name:'ວັນສ້າງຕັ້ງ ສປປ ລາວ'},
-  {date:'2026-08-13',name:'ວັນສ້າງຕັ້ງລາວ ອິດສາລາ'},
-  {date:'2026-08-23',name:'ວັນຍາ ຂາວ'},
-  {date:'2026-10-12',name:'ວັນຊາດລາວ'},
-  {date:'2026-12-02',name:'ວັນຊາດລາວ'},
-  {date:'2025-04-13',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2025-04-14',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2025-04-15',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2025-04-16',name:'ວັນປີໃໝ່ລາວ (ສົງການ)'},
-  {date:'2025-05-01',name:'ວັນກຳມະກອນສາກົນ'},
-  {date:'2025-12-02',name:'ວັນຊາດລາວ'},
-];
+const DEFAULT_HOLIDAYS = []; // ເລີ່ມຕົ້ນດ້ວຍລາຍການວ່າງ — ໃຊ້ Preset ຫຼື ເພີ່ມດ້ວຍຕົນເອງ
 
 let holidays = [];
 
@@ -699,10 +677,10 @@ function exportHolExcel(){
 }
 
 function resetHolidays(){
-  if(!confirm('Reset ກັບຄືນຄ່າເລີ່ມຕົ້ນ? ວັນພັກທີ່ເພີ່ມເອງຈະຖືກລຶບ')) return;
-  holidays=[...DEFAULT_HOLIDAYS]; saveHolidays(); renderHolList(); updateHolStats();
+  if(!confirm('ລຶບວັນພັກທັງໝົດ? ລາຍການຈະຖືກເຄຍລ໌ (ສາມາດເພີ່ມຄືນດ້ວຍ Preset ຫຼື ເພີ່ມດ້ວຍຕົນເອງ)')) return;
+  holidays=[]; saveHolidays(); renderHolList(); updateHolStats();
   if(activeId) render();
-  showToast('Reset ວັນພັກສຳເລັດ');
+  showToast('ລຶບວັນພັກທັງໝົດແລ້ວ');
 }
 
 // Import handler
